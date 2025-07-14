@@ -1,124 +1,124 @@
-"use client"
-import React, { useState } from 'react'
-import 'remixicon/fonts/remixicon.css'
-import { Link , useNavigate } from 'react-router-dom' 
+import React, { useState, useContext } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { UserDataContext } from '../context/userContext'
+import { UserDataContext } from '../context/UserContext'
+
 
 
 const UserSignup = () => {
+  const [ email, setEmail ] = useState('')
+  const [ password, setPassword ] = useState('')
+  const [ firstName, setFirstName ] = useState('')
+  const [ lastName, setLastName ] = useState('')
+  const [ userData, setUserData ] = useState({})
 
-  const [email, setemail] = useState('');
-  const [password, setpassword] = useState('')
-  const [firstname, setfirstname] = useState('')
-  const [lastname, setlastname] = useState('')
-  const navigate = useNavigate();
-  const {user,setUser} = React.useContext(UserDataContext);
-  
-  const submitHandler =  async (e) => {
-      e.preventDefault();
-  
-      const newUser = {
-        fullname:{
-          firstname:firstname,
-          lastname:lastname,
-        },
-        email:email,
-        password:password
-      };
+  const navigate = useNavigate()
 
-      const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/register`,newUser);
 
-      
 
-      if(response.status==201){
-        const data = response.data;
-        setUser(data.user)
-        localStorage.setItem('token',data.token);
-        navigate('/home')
+  const { user, setUser } = useContext(UserDataContext)
 
-      }
-      
-      // console.log(userData)
-      setfirstname('')
-      setlastname('')
-      setemail('')
-      setpassword('')
+
+
+
+  const submitHandler = async (e) => {
+    e.preventDefault()
+    const newUser = {
+      fullname: {
+        firstname: firstName,
+        lastname: lastName
+      },
+      email: email,
+      password: password
+    }
+
+    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/register`, newUser)
+
+    if (response.status === 201) {
+      const data = response.data
+      setUser(data.user)
+      localStorage.setItem('token', data.token)
+      navigate('/home')
+    }
+
+
+    setEmail('')
+    setFirstName('')
+    setLastName('')
+    setPassword('')
+
   }
-
-
   return (
-    <div className='p-5 flex flex-col gap-17 h-screen w-screen'>
-    <div><h1 className="text-3xl tracking-tighter font-[400]">Uber</h1></div>
+    <div>
+      <div className='p-7 h-screen flex flex-col justify-between'>
+        <div>
+          <img className='w-16 mb-10' src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYQy-OIkA6In0fTvVwZADPmFFibjmszu2A0g&s" alt="" />
 
-    <form onSubmit={(e)=>{
-      submitHandler(e);
-    }}>
-      <div className='font-medium text-lg flex flex-col gap-5'>
-      {/* Name */}
-      <div >
-        <p className='text-2xl'>What's your name</p>
-        <div className='flex gap-2'>
-          {/* firstname  */}
-          <input 
-        type="text" 
-        value={firstname}
-        onChange={ (e) => {
-          setfirstname(e.target.value);
-        }}
-        required
-        placeholder='First name'
-        className='border-1 rounded px-2 py-1 w-1/2 text-[0.9em]'/>
-        
-        {/* lastname  */}
-        <input 
-        type="text" 
-        value={lastname}
-        onChange={ (e) => {
-          setlastname(e.target.value);
-        }}
-        placeholder='Last name'
-        className='border-1 rounded px-2 py-1 w-1/2 text-[0.9em]'/>
+          <form onSubmit={(e) => {
+            submitHandler(e)
+          }}>
+
+            <h3 className='text-lg w-1/2  font-medium mb-2'>What's your name</h3>
+            <div className='flex gap-4 mb-7'>
+              <input
+                required
+                className='bg-[#eeeeee] w-1/2 rounded-lg px-4 py-2 border  text-lg placeholder:text-base'
+                type="text"
+                placeholder='First name'
+                value={firstName}
+                onChange={(e) => {
+                  setFirstName(e.target.value)
+                }}
+              />
+              <input
+                required
+                className='bg-[#eeeeee] w-1/2  rounded-lg px-4 py-2 border  text-lg placeholder:text-base'
+                type="text"
+                placeholder='Last name'
+                value={lastName}
+                onChange={(e) => {
+                  setLastName(e.target.value)
+                }}
+              />
+            </div>
+
+            <h3 className='text-lg font-medium mb-2'>What's your email</h3>
+            <input
+              required
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+              }}
+              className='bg-[#eeeeee] mb-7 rounded-lg px-4 py-2 border w-full text-lg placeholder:text-base'
+              type="email"
+              placeholder='email@example.com'
+            />
+
+            <h3 className='text-lg font-medium mb-2'>Enter Password</h3>
+
+            <input
+              className='bg-[#eeeeee] mb-7 rounded-lg px-4 py-2 border w-full text-lg placeholder:text-base'
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+              }}
+              required type="password"
+              placeholder='password'
+            />
+
+            <button
+              className='bg-[#111] text-white font-semibold mb-3 rounded-lg px-4 py-2 w-full text-lg placeholder:text-base'
+            >Create account</button>
+
+          </form>
+          <p className='text-center'>Already have a account? <Link to='/login' className='text-blue-600'>Login here</Link></p>
+        </div>
+        <div>
+          <p className='text-[10px] leading-tight'>This site is protected by reCAPTCHA and the <span className='underline'>Google Privacy
+            Policy</span> and <span className='underline'>Terms of Service apply</span>.</p>
         </div>
       </div>
-
-      {/* Email */}
-      <div>
-        <p className='text-2xl'>What's your email</p>
-        <input 
-        type="email" 
-        value={email}
-        onChange={ (e) => {
-          setemail(e.target.value);
-        }}
-        required
-        placeholder='Enter your email'
-        className='border-1 rounded px-2 text-[0.9em] py-1 w-[100%]'/>
-      </div>
-
-      {/* Password */}
-      <div>
-        <p className='text-2xl'>Password</p>
-        <input 
-        type="password" 
-        required
-        value={password}
-        onChange={(e)=>{
-          setpassword(e.target.value);
-        }}
-        placeholder='Enter Password'
-        className='border-1 rounded text-[0.9em] px-2 py-1 w-[100%]'/>
-      </div>
-    </div>
-    
-
-    <div className='mt-20'>
-      <button className='bg-black text-white rounded font-semibold text-lg w-[100%] py-1 '>Create Account</button>
-      <p className='text-center mt-3'>Already have an account? <br /><Link to='/login' className='text-blue-700'>Login here</Link></p>
-    </div>
-    </form>
-
-    </div>
+    </div >
   )
 }
 

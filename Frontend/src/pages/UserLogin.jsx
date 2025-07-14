@@ -1,88 +1,86 @@
-"use client"
-import React, { useState } from 'react'
-import 'remixicon/fonts/remixicon.css'
-import { Link, useNavigate } from 'react-router-dom' 
-import { UserDataContext } from '../context/userContext'
+import React, { useState, useContext } from 'react'
+import { Link } from 'react-router-dom'
+import { UserDataContext } from '../context/UserContext'
+import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-
 const UserLogin = () => {
+  const [ email, setEmail ] = useState('')
+  const [ password, setPassword ] = useState('')
+  const [ userData, setUserData ] = useState({})
 
-  const [email, setemail] = useState('');
-  const [password, setpassword] = useState('')
-  const [userData, setuserData] = useState({})
+  const { user, setUser } = useContext(UserDataContext)
+  const navigate = useNavigate()
 
-  const {user , setUser} = React.useContext(UserDataContext)
-  const navigate = useNavigate();
+
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
     const userData = {
-      email:email,
-      password:password
+      email: email,
+      password: password
     }
 
-    try {
-    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/login`, userData);
+    const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/users/login`, userData)
 
-    if (response.status === 201) {
-      const data = response.data;
-      setUser(data.user);
-      localStorage.setItem('token',data.token);
-      navigate('/home');
+    if (response.status === 200) {
+      const data = response.data
+      setUser(data.user)
+      localStorage.setItem('token', data.token)
+      navigate('/home')
     }
-  } catch (error) {
-    console.error('Login error:', error.response?.data || error.message);
-    alert('Login failed');
-  }
-    
-    setemail('')
-    setpassword('')
-  }
 
+
+    setEmail('')
+    setPassword('')
+  }
 
   return (
-    <div className='p-5 flex flex-col gap-17 h-screen w-screen'>
-    <div><h1 className="text-3xl tracking-tighter font-[400]">Uber</h1></div>
-
-    <form onSubmit={(e)=>{
-      submitHandler(e);
-    }}>
-      <div className='font-medium text-lg flex flex-col gap-4'>
+    <div className='p-7 h-screen flex flex-col justify-between'>
       <div>
-        <p className='text-2xl'>What's your email</p>
-        <input 
-        type="email" 
-        value={email}
-        onChange={ (e) => {
-          setemail(e.target.value);
-        }}
-        required
-        placeholder='Enter your email'
-        className='border-1 rounded px-2 py-1 w-[100%]'/>
+        <img className='w-16 mb-10' src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYQy-OIkA6In0fTvVwZADPmFFibjmszu2A0g&s" alt="" />
+
+        <form onSubmit={(e) => {
+          submitHandler(e)
+        }}>
+          <h3 className='text-lg font-medium mb-2'>What's your email</h3>
+          <input
+            required
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+            }}
+            className='bg-[#eeeeee] mb-7 rounded-lg px-4 py-2 border w-full text-lg placeholder:text-base'
+            type="email"
+            placeholder='email@example.com'
+          />
+
+          <h3 className='text-lg font-medium mb-2'>Enter Password</h3>
+
+          <input
+            className='bg-[#eeeeee] mb-7 rounded-lg px-4 py-2 border w-full text-lg placeholder:text-base'
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+            }}
+            required type="password"
+            placeholder='password'
+          />
+
+          <button
+            className='bg-[#111] text-white font-semibold mb-3 rounded-lg px-4 py-2 w-full text-lg placeholder:text-base'
+          >Login</button>
+
+        </form>
+        <p className='text-center'>New here? <Link to='/signup' className='text-blue-600'>Create new Account</Link></p>
       </div>
       <div>
-        <p className='text-2xl'>Password</p>
-        <input 
-        type="password" 
-        required
-        value={password}
-        onChange={(e)=>{
-          setpassword(e.target.value);
-        }}
-        placeholder='Enter Password'
-        className='border-1 rounded px-2 py-1 w-[100%]'/>
+        <Link
+          to='/captain-login'
+          className='bg-[#10b461] flex items-center justify-center text-white font-semibold mb-5 rounded-lg px-4 py-2 w-full text-lg placeholder:text-base'
+        >Sign in as Captain</Link>
       </div>
-    </div>
-    
-
-    <div className='mt-20'>
-      <button className='bg-black text-white rounded font-semibold text-lg w-[100%] py-1 '>Login</button>
-      <p className='text-center mt-3'>New here? <Link to='/signup' className='text-blue-700'>Create Account</Link></p>
-    </div>
-    </form>
-
     </div>
   )
 }
