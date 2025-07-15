@@ -1,10 +1,12 @@
-const http = require('http');;
-const app = require('./app'); // Import the Express app
-const port = process.env.PORT || 4000; // Set the port
+const http = require('http');
+const app = require('./app');
+const { initializeSocket } = require('./socket');
+const port = process.env.PORT || 3000;
 
-// Create the HTTP server
 const server = http.createServer(app);
 
-server.listen(port,()=>{
+initializeSocket(server);
+
+server.listen(port, () => {
     console.log(`Server is running on port ${port}`);
-})
+});

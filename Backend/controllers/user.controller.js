@@ -1,7 +1,7 @@
-const userModel = require('../../../uber-video/Backend/models/user.model');
-const userService = require('../../../uber-video/Backend/services/user.service');
+const userModel = require('../models/user.model');
+const userService = require('../services/user.service');
 const { validationResult } = require('express-validator');
-const blackListTokenModel = require('../../../uber-video/Backend/models/blackListToken.model');
+const blackListTokenModel = require('../models/blackListToken.model');
 
 module.exports.registerUser = async (req, res, next) => {
 
