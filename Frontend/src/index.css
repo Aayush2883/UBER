@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Safe area support for notched phones (iPhone X+) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

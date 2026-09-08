@@ -1,7 +1,7 @@
 const rideService = require('../services/ride.service');
 const { validationResult } = require('express-validator');
 const mapService = require('../services/maps.service');
-const { sendMessageToSocketId } = require('../socket');
+const { sendMessageToSocketId, broadcastToCaptains } = require('../socket');
 const rideModel = require('../models/ride.model');
 
 
@@ -17,27 +17,35 @@ module.exports.createRide = async (req, res) => {
         const ride = await rideService.createRide({ user: req.user._id, pickup, destination, vehicleType });
         res.status(201).json(ride);
 
-        const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
+        try {
+            const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
+            const captainsInRadius = await mapService.getCaptainsInTheRadius(pickupCoordinates.ltd, pickupCoordinates.lng, 15);
 
+            ride.otp = "";
+            const rideWithUser = await rideModel.findOne({ _id: ride._id }).populate('user');
 
+            // 1. Direct socket dispatch to captains in radius
+            if (captainsInRadius && captainsInRadius.length > 0) {
+                captainsInRadius.forEach(captain => {
+                    if (captain.socketId) {
+                        sendMessageToSocketId(captain.socketId, {
+                            event: 'new-ride',
+                            data: rideWithUser
+                        });
+                    }
+                });
+            }
 
-        const captainsInRadius = await mapService.getCaptainsInTheRadius(pickupCoordinates.ltd, pickupCoordinates.lng, 2);
-
-        ride.otp = ""
-
-        const rideWithUser = await rideModel.findOne({ _id: ride._id }).populate('user');
-
-        captainsInRadius.map(captain => {
-
-            sendMessageToSocketId(captain.socketId, {
+            // 2. Room broadcast to all active connected captains (guarantees popup delivery)
+            broadcastToCaptains({
                 event: 'new-ride',
                 data: rideWithUser
-            })
-
-        })
+            });
+        } catch (socketErr) {
+            console.error('Error broadcasting new-ride to captains:', socketErr);
+        }
 
     } catch (err) {
-
         console.log(err);
         return res.status(500).json({ message: err.message });
     }
@@ -129,5 +137,5 @@ module.exports.endRide = async (req, res) => {
         return res.status(200).json(ride);
     } catch (err) {
         return res.status(500).json({ message: err.message });
-    } s
+    }
 }

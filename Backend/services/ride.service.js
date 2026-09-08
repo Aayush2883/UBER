@@ -1,25 +1,35 @@
 const rideModel = require('../models/ride.model');
+const captainModel = require('../models/captain.model');
 const mapService = require('./maps.service');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 async function getFare(pickup, destination) {
-
     if (!pickup || !destination) {
         throw new Error('Pickup and destination are required');
     }
 
-    const distanceTime = await mapService.getDistanceTime(pickup, destination);
+    let distanceTime;
+    try {
+        distanceTime = await mapService.getDistanceTime(pickup, destination);
+    } catch {
+        distanceTime = mapService.generateSimulatedDistanceTime(pickup, destination);
+    }
 
+    if (!distanceTime || !distanceTime.distance || !distanceTime.duration) {
+        distanceTime = mapService.generateSimulatedDistanceTime(pickup, destination);
+    }
+
+    // Realistic Urban Pricing Matrix (Base fare + Distance/KM + Time/Min)
     const baseFare = {
-        auto: 30,
-        car: 50,
-        moto: 20
+        auto: 35,
+        car: 55,
+        moto: 25
     };
 
     const perKmRate = {
         auto: 10,
-        car: 15,
+        car: 14,
         moto: 8
     };
 
@@ -29,17 +39,24 @@ async function getFare(pickup, destination) {
         moto: 1.5
     };
 
+    const minFare = {
+        auto: 45,
+        car: 70,
+        moto: 30
+    };
 
+    const distKm = Math.max(1.5, Math.round(((distanceTime.distance.value || 3500) / 1000) * 10) / 10);
+    const durMin = Math.max(5, Math.round((distanceTime.duration.value || 600) / 60));
 
     const fare = {
-        auto: Math.round(baseFare.auto + ((distanceTime.distance.value / 1000) * perKmRate.auto) + ((distanceTime.duration.value / 60) * perMinuteRate.auto)),
-        car: Math.round(baseFare.car + ((distanceTime.distance.value / 1000) * perKmRate.car) + ((distanceTime.duration.value / 60) * perMinuteRate.car)),
-        moto: Math.round(baseFare.moto + ((distanceTime.distance.value / 1000) * perKmRate.moto) + ((distanceTime.duration.value / 60) * perMinuteRate.moto))
+        auto: Math.max(minFare.auto, Math.round(baseFare.auto + (distKm * perKmRate.auto) + (durMin * perMinuteRate.auto))),
+        car: Math.max(minFare.car, Math.round(baseFare.car + (distKm * perKmRate.car) + (durMin * perMinuteRate.car))),
+        moto: Math.max(minFare.moto, Math.round(baseFare.moto + (distKm * perKmRate.moto) + (durMin * perMinuteRate.moto))),
+        distance: distanceTime.distance,
+        duration: distanceTime.duration
     };
 
     return fare;
-
-
 }
 
 module.exports.getFare = getFare;
@@ -63,15 +80,22 @@ module.exports.createRide = async ({
 
     const fare = await getFare(pickup, destination);
 
+    let distanceTime;
+    try {
+        distanceTime = await mapService.getDistanceTime(pickup, destination);
+    } catch {
+        distanceTime = mapService.generateSimulatedDistanceTime(pickup, destination);
+    }
 
-
-    const ride = rideModel.create({
+    const ride = await rideModel.create({
         user,
         pickup,
         destination,
         otp: getOtp(6),
-        fare: fare[ vehicleType ]
-    })
+        fare: fare[ vehicleType ] || fare.car,
+        distance: distanceTime?.distance?.value || 3500,
+        duration: distanceTime?.duration?.value || 600
+    });
 
     return ride;
 }
@@ -123,13 +147,13 @@ module.exports.startRide = async ({ rideId, otp, captain }) => {
         throw new Error('Invalid OTP');
     }
 
-    await rideModel.findOneAndUpdate({
+    const updatedRide = await rideModel.findOneAndUpdate({
         _id: rideId
     }, {
         status: 'ongoing'
-    })
+    }, { new: true }).populate('user').populate('captain');
 
-    return ride;
+    return updatedRide;
 }
 
 module.exports.endRide = async ({ rideId, captain }) => {
@@ -140,7 +164,7 @@ module.exports.endRide = async ({ rideId, captain }) => {
     const ride = await rideModel.findOne({
         _id: rideId,
         captain: captain._id
-    }).populate('user').populate('captain').select('+otp');
+    }).populate('user').populate('captain');
 
     if (!ride) {
         throw new Error('Ride not found');
@@ -150,12 +174,24 @@ module.exports.endRide = async ({ rideId, captain }) => {
         throw new Error('Ride not ongoing');
     }
 
-    await rideModel.findOneAndUpdate({
+    const updatedRide = await rideModel.findOneAndUpdate({
         _id: rideId
     }, {
         status: 'completed'
-    })
+    }, { new: true }).populate('user').populate('captain');
 
-    return ride;
+    // Update captain's dynamic stats in database
+    const earnedAmount = ride.fare || 0;
+    const distanceKm = Math.round(((ride.distance || 3500) / 1000) * 10) / 10;
+
+    await captainModel.findByIdAndUpdate(captain._id, {
+        $inc: {
+            earnings: earnedAmount,
+            ridesCount: 1,
+            distanceCovered: distanceKm
+        }
+    });
+
+    return updatedRide;
 }
 

@@ -15,20 +15,25 @@ function initializeSocket(server) {
     io.on('connection', (socket) => {
         console.log(`Client connected: ${socket.id}`);
 
-
         socket.on('join', async (data) => {
             const { userId, userType } = data;
+            if (!userId) return;
 
             if (userType === 'user') {
                 await userModel.findByIdAndUpdate(userId, { socketId: socket.id });
+                socket.join('users');
             } else if (userType === 'captain') {
-                await captainModel.findByIdAndUpdate(userId, { socketId: socket.id });
+                await captainModel.findByIdAndUpdate(userId, { 
+                    socketId: socket.id,
+                    status: 'active'
+                });
+                socket.join('captains');
             }
         });
 
-
         socket.on('update-location-captain', async (data) => {
             const { userId, location } = data;
+            if (!userId) return;
 
             if (!location || !location.ltd || !location.lng) {
                 return socket.emit('error', { message: 'Invalid location data' });
@@ -38,25 +43,36 @@ function initializeSocket(server) {
                 location: {
                     ltd: location.ltd,
                     lng: location.lng
-                }
+                },
+                socketId: socket.id,
+                status: 'active'
             });
         });
 
-        socket.on('disconnect', () => {
+        socket.on('disconnect', async () => {
             console.log(`Client disconnected: ${socket.id}`);
+            try {
+                await userModel.findOneAndUpdate({ socketId: socket.id }, { socketId: null });
+                await captainModel.findOneAndUpdate({ socketId: socket.id }, { socketId: null });
+            } catch {
+                // disconnect cleanup ignore
+            }
         });
     });
 }
 
 const sendMessageToSocketId = (socketId, messageObject) => {
-
-console.log(messageObject);
-
-    if (io) {
+    if (io && socketId) {
         io.to(socketId).emit(messageObject.event, messageObject.data);
     } else {
-        console.log('Socket.io not initialized.');
+        console.log('Socket.io or socketId missing.');
     }
 }
 
-module.exports = { initializeSocket, sendMessageToSocketId };
+const broadcastToCaptains = (messageObject) => {
+    if (io) {
+        io.to('captains').emit(messageObject.event, messageObject.data);
+    }
+}
+
+module.exports = { initializeSocket, sendMessageToSocketId, broadcastToCaptains };

@@ -6,51 +6,46 @@ const containerStyle = {
     height: '100%',
 };
 
-const center = {
-    lat: -3.745,
-    lng: -38.523
+const defaultCenter = {
+    lat: 28.6139,  // Default to New Delhi instead of Brazil
+    lng: 77.2090
 };
 
 const LiveTracking = () => {
-    const [ currentPosition, setCurrentPosition ] = useState(center);
+    const [ currentPosition, setCurrentPosition ] = useState(defaultCenter);
 
     useEffect(() => {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const { latitude, longitude } = position.coords;
-            setCurrentPosition({
-                lat: latitude,
-                lng: longitude
+        // Get initial position
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                setCurrentPosition({ lat: latitude, lng: longitude });
             });
-        });
+        }
 
+        // Watch for position changes
         const watchId = navigator.geolocation.watchPosition((position) => {
             const { latitude, longitude } = position.coords;
-            setCurrentPosition({
-                lat: latitude,
-                lng: longitude
-            });
+            setCurrentPosition({ lat: latitude, lng: longitude });
         });
 
         return () => navigator.geolocation.clearWatch(watchId);
     }, []);
 
+    // Fix: second useEffect for interval with proper cleanup
     useEffect(() => {
         const updatePosition = () => {
+            if (!navigator.geolocation) return;
             navigator.geolocation.getCurrentPosition((position) => {
                 const { latitude, longitude } = position.coords;
-
-                console.log('Position updated:', latitude, longitude);
-                setCurrentPosition({
-                    lat: latitude,
-                    lng: longitude
-                });
+                setCurrentPosition({ lat: latitude, lng: longitude });
             });
         };
 
-        updatePosition(); // Initial position update
+        const intervalId = setInterval(updatePosition, 10000); // every 10 seconds
 
-        const intervalId = setInterval(updatePosition, 1000); // Update every 10 seconds
-
+        // Fix: return cleanup to prevent memory leak
+        return () => clearInterval(intervalId);
     }, []);
 
     return (
