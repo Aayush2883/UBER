@@ -1,9 +1,6 @@
-# 🚖 Uber Clone — Full-Stack Real-Time Ride Hailing Platform
+# Uber Clone — Full-Stack Real-Time Ride Platform
 
-A full-stack, real-time ride-hailing web application inspired by Uber. Built with **React 18**, **Node.js/Express**, **Socket.io**, **MongoDB**, and **Leaflet / OpenStreetMap**, featuring real-time driver-rider socket synchronization, dynamic pricing, live GPS tracking, and an OTP-authenticated ride lifecycle.
-
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://uber-clone-eosin-nine.vercel.app/)
-[![Backend API](https://img.shields.io/badge/Backend%20API-Render-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://uber-backend-brmd.onrender.com)
+A full-stack, real-time ride-hailing web application inspired by Uber. Built with **React **, **Node.js/Express**, **Socket.io**, **MongoDB**, and **Leaflet / OpenStreetMap**, featuring real-time driver-rider socket synchronization, dynamic pricing, live GPS tracking, and an OTP-authenticated ride lifecycle.
 
 ---
 
