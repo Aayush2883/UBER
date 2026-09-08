@@ -46,7 +46,10 @@ const Riding = () => {
             </div>
             <div className='h-1/2 p-4 overflow-y-auto'>
                 <div className='flex items-center justify-between mb-4 border-b pb-3'>
-                    <img className='h-14 sm:h-16 rounded object-cover' src={vehicleImg} alt="Vehicle" />
+                    <div className='relative'>
+                        <img className='h-14 sm:h-16 rounded object-cover' src={vehicleImg} alt="Vehicle" />
+                        <img className='h-7 w-7 rounded-full object-cover border-2 border-white shadow-md absolute -bottom-1 -right-1' src="https://tse2.mm.bing.net/th/id/OIP.bJpr9jpclIkXQT-hkkb1KQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Captain" />
+                    </div>
                     <div className='text-right'>
                         <h2 className='text-base sm:text-lg font-bold capitalize'>{ride?.captain?.fullname?.firstname} {ride?.captain?.fullname?.lastname || ''}</h2>
                         <h4 className='text-base sm:text-lg font-mono font-bold text-gray-800 -mt-0.5 tracking-wider'>{ride?.captain?.vehicle?.plate || 'DL 01 AB 1234'}</h4>

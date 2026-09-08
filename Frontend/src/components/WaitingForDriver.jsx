@@ -20,7 +20,10 @@ const WaitingForDriver = (props) => {
             }}><i className="text-3xl text-gray-300 ri-arrow-down-wide-line"></i></h5>
 
             <div className='flex items-center justify-between mt-2 pt-2 border-b pb-3'>
-                <img className='h-12 sm:h-14 rounded object-cover' src={vehicleImg} alt="Vehicle" />
+                <div className='relative'>
+                    <img className='h-12 sm:h-14 rounded object-cover' src={vehicleImg} alt="Vehicle" />
+                    <img className='h-6 w-6 rounded-full object-cover border-2 border-white shadow-md absolute -bottom-1 -right-1' src="https://tse2.mm.bing.net/th/id/OIP.bJpr9jpclIkXQT-hkkb1KQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Captain" />
+                </div>
                 <div className='text-right'>
                     <h2 className='text-base sm:text-lg font-bold capitalize text-gray-900'>
                         {props.ride?.captain?.fullname?.firstname || 'Captain'} {props.ride?.captain?.fullname?.lastname || ''}

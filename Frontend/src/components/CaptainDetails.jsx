@@ -16,7 +16,7 @@ const CaptainDetails = () => {
         <div>
             <div className='flex items-center justify-between'>
                 <div className='flex items-center justify-start gap-3'>
-                    <img className='h-11 w-11 rounded-full object-cover border border-gray-200 shadow-sm' src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdlMd7stpWUCmjpfRjUsQ72xSWikidbgaI1w&s" alt="Captain" />
+                    <img className='h-11 w-11 rounded-full object-cover border border-gray-200 shadow-sm' src="https://tse2.mm.bing.net/th/id/OIP.bJpr9jpclIkXQT-hkkb1KQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Captain" />
                     <div>
                         <h4 className='text-base sm:text-lg font-bold capitalize text-gray-900'>{firstName + " " + lastName}</h4>
                         <p className='text-xs text-gray-500 capitalize'>
