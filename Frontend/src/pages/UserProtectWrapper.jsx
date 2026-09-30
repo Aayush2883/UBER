@@ -28,7 +28,9 @@ const UserProtectWrapper = ({
         })
             .catch(err => {
                 console.log(err)
+                // Clear both possible token keys so the loop cannot repeat
                 localStorage.removeItem('token')
+                localStorage.removeItem('user-token')
                 navigate('/login')
             })
     }, [ token ])

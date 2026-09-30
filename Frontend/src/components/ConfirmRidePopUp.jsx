@@ -24,7 +24,9 @@ const ConfirmRidePopUp = (props) => {
         if (response.status === 200) {
             props.setConfirmRidePopupPanel(false)
             props.setRidePopupPanel(false)
-            navigate('/captain-riding', { state: { ride: props.ride } })
+            // Use response.data (fresh, fully populated ride from server)
+            // NOT props.ride which is the stale initial socket event payload
+            navigate('/captain-riding', { state: { ride: response.data } })
         }
     }
     return (

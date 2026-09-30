@@ -53,7 +53,9 @@ async function getFare(pickup, destination) {
         car: Math.max(minFare.car, Math.round(baseFare.car + (distKm * perKmRate.car) + (durMin * perMinuteRate.car))),
         moto: Math.max(minFare.moto, Math.round(baseFare.moto + (distKm * perKmRate.moto) + (durMin * perMinuteRate.moto))),
         distance: distanceTime.distance,
-        duration: distanceTime.duration
+        duration: distanceTime.duration,
+        // Expose distanceTime so callers can reuse it and avoid a second API call
+        _distanceTime: distanceTime
     };
 
     return fare;
@@ -78,14 +80,10 @@ module.exports.createRide = async ({
         throw new Error('All fields are required');
     }
 
+    // getFare already calls getDistanceTime internally — reuse its result
+    // to avoid calling the Nominatim/OSRM APIs twice per ride creation
     const fare = await getFare(pickup, destination);
-
-    let distanceTime;
-    try {
-        distanceTime = await mapService.getDistanceTime(pickup, destination);
-    } catch {
-        distanceTime = mapService.generateSimulatedDistanceTime(pickup, destination);
-    }
+    const distanceTime = fare._distanceTime;
 
     const ride = await rideModel.create({
         user,

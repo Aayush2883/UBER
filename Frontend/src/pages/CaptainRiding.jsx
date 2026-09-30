@@ -66,7 +66,12 @@ const CaptainRiding = () => {
 
             <div className='h-screen fixed w-full top-0 left-0 z-0'>
                 {/* <LiveTracking /> */} {/* Google Maps — requires billing */}
-                <LiveTrackingOSM /> {/* Free OpenStreetMap alternative */}
+                <LiveTrackingOSM
+                    pickup={rideData?.pickup}
+                    destination={rideData?.destination}
+                    role="captain"
+                    title="Captain Location"
+                />
             </div>
 
         </div>

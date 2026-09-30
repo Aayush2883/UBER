@@ -2,9 +2,9 @@ const axios = require('axios');
 const captainModel = require('../models/captain.model');
 
 // ============================================================
-// NOTE: Google Maps API code is commented out below.
+// Google Maps API code is commented out below.
 // Reason: Google Maps APIs require billing to be enabled.
-// We switched to free OpenStreetMap alternatives (Nominatim + OSRM).
+// We switched to free OpenStreetMap alternatives.
 // To re-enable Google Maps: uncomment Google sections, comment OSM sections,
 // and enable billing at https://console.cloud.google.com/billing
 // ============================================================
@@ -120,6 +120,26 @@ module.exports.getAddressCoordinate = async (address) => {
 }
 
 
+// ---- REVERSE GEOCODE (server-side only — avoids browser CORS & rate-limit issues) ----
+
+module.exports.reverseGeocode = async (lat, lng) => {
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=16&addressdetails=1`;
+        const response = await axios.get(url, {
+            headers: { 'User-Agent': 'UberCloneApp/2.0' },
+            timeout: 5000,
+        });
+        if (response.data && response.data.display_name) {
+            return response.data.display_name;
+        }
+    } catch (err) {
+        console.error('[reverseGeocode error]', err.message);
+    }
+    // Fallback: return raw coordinates
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+};
+
+
 // ---- GET DISTANCE & TIME ----
 
 module.exports.getDistanceTime = async (origin, destination) => {
@@ -179,50 +199,110 @@ module.exports.getDistanceTime = async (origin, destination) => {
 
 // ---- AUTOCOMPLETE SUGGESTIONS ----
 
-module.exports.getAutoCompleteSuggestions = async (input) => {
+/**
+ * Build a short readable label from Nominatim addressdetails.
+ * Priority: name/road → suburb/neighbourhood → city/town/village → state → country
+ */
+const buildLabel = (place) => {
+    const a = place.address || {};
+
+    // Primary: the specific named place or road
+    const primary =
+        place.name ||
+        a.amenity ||
+        a.road ||
+        a.pedestrian ||
+        a.path ||
+        a.footway ||
+        null;
+
+    // City-level: prefer city > town > village > county > district
+    const city =
+        a.city ||
+        a.town ||
+        a.village ||
+        a.county ||
+        a.district ||
+        null;
+
+    const state = a.state || null;
+
+    // Sub-label: city + state (what user cares about most)
+    const sublabelParts = [ city, state ].filter(Boolean);
+    const sublabel = sublabelParts.join(', ') || a.country || '';
+
+    // Full label: primary (if different from city), then city, state
+    const labelParts = [];
+    if (primary && primary !== city) labelParts.push(primary);
+    if (city) labelParts.push(city);
+    if (state && state !== city) labelParts.push(state);
+    if (labelParts.length === 0) labelParts.push(place.display_name.split(',')[0]);
+
+    return {
+        label: labelParts.join(', '),
+        sublabel,
+        full: place.display_name, // used as the actual value sent to backend
+        importance: parseFloat(place.importance || 0),
+    };
+};
+
+/**
+ * Sort suggestions: city/state matches first, then by Nominatim importance score.
+ * User in Prayagraj typing "IIIT" → IIITA Prayagraj comes before IIIT Delhi.
+ */
+const sortByProximityRelevance = (results, input) => {
+    const q = input.toLowerCase();
+    return results.sort((a, b) => {
+        // Boost results whose city/state contains the query token
+        const aBoost = (a.label.toLowerCase().includes(q) ? 2 : 0) + a.importance;
+        const bBoost = (b.label.toLowerCase().includes(q) ? 2 : 0) + b.importance;
+        return bBoost - aBoost;
+    });
+};
+
+module.exports.getAutoCompleteSuggestions = async (input, lat, lng) => {
     if (!input) {
         throw new Error('query is required');
     }
 
-    // -- GOOGLE MAPS (requires billing) --
-    // const apiKey = process.env.GOOGLE_MAPS_API;
-    // const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${apiKey}`;
-    // try {
-    //     const response = await axios.get(url);
-    //     console.log('Places API status:', response.data.status);
-    //     if (response.data.status === 'OK' || response.data.status === 'ZERO_RESULTS') {
-    //         return (response.data.predictions || []).map(prediction => prediction.description).filter(value => value);
-    //     } else {
-    //         console.error('Google Places API error:', response.data.status, response.data.error_message);
-    //         return [];
-    //     }
-    // } catch (err) {
-    //     console.error(err);
-    //     return [];
-    // }
+    // Build Nominatim URL with proximity bias when user location is available
+    let url = `https://nominatim.openstreetmap.org/search`
+        + `?q=${encodeURIComponent(input)}`
+        + `&format=json`
+        + `&limit=8`
+        + `&addressdetails=1`
+        + `&countrycodes=in`; // India-only results
 
-    // -- NOMINATIM / OpenStreetMap (free, no billing) --
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(input)}&format=json&limit=5&addressdetails=1`;
+    // If user's GPS coords are available, add a viewbox around them (~50 km radius)
+    // This makes nearby places bubble up first
+    if (lat && lng) {
+        const delta = 0.5; // ~55 km bounding box
+        url += `&viewbox=${lng - delta},${lat + delta},${lng + delta},${lat - delta}`;
+        url += `&bounded=0`; // prefer inside viewbox but don't restrict to it
+    }
+
     try {
         const response = await axios.get(url, {
             headers: { 'User-Agent': 'UberCloneApp/2.0' },
-            timeout: 4000
+            timeout: 5000,
         });
+
         if (response.data && response.data.length > 0) {
-            return response.data.map(place => place.display_name).filter(Boolean);
+            const structured = response.data.map(buildLabel);
+            const sorted = sortByProximityRelevance(structured, input);
+
+            // Return structured objects: { label, sublabel, full }
+            // Frontend uses label+sublabel for display, full as the actual address value
+            return sorted.map(({ label, sublabel, full }) => ({ label, sublabel, full }));
         }
-    } catch {
-        // Continue to fallback
+    } catch (err) {
+        console.error('[Nominatim suggestions error]', err.message);
     }
 
-    // Smart fallback suggestions so user is never blocked by Nominatim rate limiting
-    const query = input.trim();
-    return [
-        `${query}, Main Road, New Delhi, Delhi, India`,
-        `${query}, Sector 18, Noida, Uttar Pradesh, India`,
-        `${query}, MG Road, Gurugram, Haryana, India`
-    ];
+    // Return empty — no fake hardcoded places
+    return [];
 }
+
 
 
 // ---- CAPTAINS IN RADIUS ----
@@ -238,9 +318,11 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius = 15) => {
             return [];
         }
 
-        // Filter captains within radius (in km) using Haversine
-        const captainsNear = allCaptains.filter(c => {
-            if (!c.location || !c.location.ltd || !c.location.lng) return true; // Include captains who haven't updated GPS yet
+        // Filter captains within radius (in km) using Haversine.
+        // Captains with no GPS data are excluded from the radius filter —
+        // they will only receive rides if nobody with a known position is nearby.
+        const captainsWithGps = allCaptains.filter(c => c.location && c.location.ltd && c.location.lng);
+        const captainsNear = captainsWithGps.filter(c => {
             const dLat = ((c.location.ltd - ltd) * Math.PI) / 180;
             const dLng = ((c.location.lng - lng) * Math.PI) / 180;
             const a = Math.sin(dLat / 2) ** 2 + Math.cos((ltd * Math.PI) / 180) * Math.cos((c.location.ltd * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;

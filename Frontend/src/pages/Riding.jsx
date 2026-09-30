@@ -41,8 +41,12 @@ const Riding = () => {
                 <i className="text-lg font-medium ri-home-5-line"></i>
             </Link>
             <div className='h-1/2'>
-                {/* <LiveTracking /> */} {/* Google Maps — requires billing */}
-                <LiveTrackingOSM /> {/* Free OpenStreetMap alternative */}
+                <LiveTrackingOSM
+                    pickup={ride?.pickup}
+                    destination={ride?.destination}
+                    role="user"
+                    title="Your Ride"
+                />
             </div>
             <div className='h-1/2 p-4 overflow-y-auto'>
                 <div className='flex items-center justify-between mb-4 border-b pb-3'>

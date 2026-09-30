@@ -11,7 +11,7 @@ import WaitingForDriver from '../components/WaitingForDriver';
 import { SocketContext } from '../context/SocketContext';
 import { useContext } from 'react';
 import { UserDataContext } from '../context/UserContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 // import LiveTracking from '../components/LiveTracking'; // Google Maps (requires billing)
 import LiveTrackingOSM from '../components/LiveTrackingOSM'; // Free OpenStreetMap alternative
 
@@ -38,12 +38,33 @@ const Home = () => {
 
     const navigate = useNavigate()
 
+    // Track the user's live GPS position so suggestions can be biased near them
+    const userGpsRef = useRef(null)
+
+    // Debounce timers for pickup and destination suggestion calls
+    // Prevents hammering Nominatim on every keystroke (their limit is 1 req/sec)
+    const pickupDebounceRef = useRef(null)
+    const destinationDebounceRef = useRef(null)
+
     const { socket } = useContext(SocketContext)
     const { user } = useContext(UserDataContext)
 
     useEffect(() => {
         socket.emit("join", { userType: "user", userId: user._id })
     }, [ user ])
+
+    // Keep a live GPS fix in ref for suggestion proximity bias
+    useEffect(() => {
+        if (!navigator.geolocation) return;
+        const watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                userGpsRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            },
+            () => {},
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+        );
+        return () => navigator.geolocation.clearWatch(watchId);
+    }, [])
 
     // Fix: move socket listeners into useEffect with cleanup to prevent memory leaks
     useEffect(() => {
@@ -68,46 +89,65 @@ const Home = () => {
         }
     }, [ socket, navigate ])
 
-    const handlePickupChange = async (e) => {
-        setPickup(e.target.value)
-        // Only call API when input has 3+ characters (backend validation requires min: 3)
-        if (e.target.value.length < 3) {
+    const handlePickupChange = (e) => {
+        const value = e.target.value
+        setPickup(value)
+
+        // Clear any pending debounce timer
+        if (pickupDebounceRef.current) clearTimeout(pickupDebounceRef.current)
+
+        if (value.length < 3) {
             setPickupSuggestions([])
             return
         }
-        try {
-            const token = localStorage.getItem('user-token') || localStorage.getItem('token')
-            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
-                params: { input: e.target.value },
-                headers: {
-                    Authorization: `Bearer ${token}`
+
+        // Wait 500ms after the user stops typing before hitting the API
+        // This respects Nominatim's 1 req/sec rate limit
+        pickupDebounceRef.current = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('user-token') || localStorage.getItem('token')
+                const params = { input: value }
+                if (userGpsRef.current) {
+                    params.lat = userGpsRef.current.lat
+                    params.lng = userGpsRef.current.lng
                 }
-            })
-            setPickupSuggestions(response.data)
-        } catch {
-            // handle error
-        }
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
+                    params,
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                setPickupSuggestions(response.data)
+            } catch {}
+        }, 500)
     }
 
-    const handleDestinationChange = async (e) => {
-        setDestination(e.target.value)
-        // Only call API when input has 3+ characters (backend validation requires min: 3)
-        if (e.target.value.length < 3) {
+    const handleDestinationChange = (e) => {
+        const value = e.target.value
+        setDestination(value)
+
+        // Clear any pending debounce timer
+        if (destinationDebounceRef.current) clearTimeout(destinationDebounceRef.current)
+
+        if (value.length < 3) {
             setDestinationSuggestions([])
             return
         }
-        try {
-            const token = localStorage.getItem('user-token') || localStorage.getItem('token')
-            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
-                params: { input: e.target.value },
-                headers: {
-                    Authorization: `Bearer ${token}`
+
+        // Wait 500ms after the user stops typing before hitting the API
+        destinationDebounceRef.current = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('user-token') || localStorage.getItem('token')
+                const params = { input: value }
+                if (userGpsRef.current) {
+                    params.lat = userGpsRef.current.lat
+                    params.lng = userGpsRef.current.lng
                 }
-            })
-            setDestinationSuggestions(response.data)
-        } catch {
-            // handle error
-        }
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
+                    params,
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                setDestinationSuggestions(response.data)
+            } catch {}
+        }, 500)
     }
 
     const submitHandler = (e) => {
@@ -195,42 +235,68 @@ const Home = () => {
 
     const [ locating, setLocating ] = useState(false)
 
+    // Helper: reverse-geocode coords → address string via OUR backend
+    // (calling Nominatim directly from the browser causes CORS blocks + 429 rate limits)
+    async function reverseGeocode(latitude, longitude) {
+        try {
+            const token = localStorage.getItem('user-token') || localStorage.getItem('token')
+            const response = await axios.get(
+                `${import.meta.env.VITE_BASE_URL}/maps/reverse-geocode`,
+                {
+                    params: { lat: latitude, lng: longitude },
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            )
+            if (response.data && response.data.address) {
+                return response.data.address
+            }
+        } catch {}
+        return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+    }
+
     async function getCurrentLocation() {
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser')
             return
         }
         setLocating(true)
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords
-                try {
-                    // Reverse geocode using Nominatim (free) instead of Google
-                    const response = await axios.get(
-                        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
-                        { headers: { 'User-Agent': 'UberCloneApp/1.0' } }
-                    )
-                    if (response.data && response.data.display_name) {
-                        setPickup(response.data.display_name)
-                    } else {
-                        setPickup(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
-                    }
-                } catch {
-                    setPickup(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`)
-                }
-                setLocating(false)
-            },
-            (error) => {
-                setLocating(false)
-                alert('Unable to get your location. Please allow location access.')
-            },
-            { enableHighAccuracy: true, timeout: 10000 }
-        )
+
+        const tryGetPosition = (highAccuracy) =>
+            new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: highAccuracy,
+                    timeout: highAccuracy ? 15000 : 10000,
+                    maximumAge: highAccuracy ? 0 : 30000,
+                })
+            })
+
+        try {
+            let position
+            try {
+                // First attempt: precise GPS (may timeout on desktops/Windows)
+                position = await tryGetPosition(true)
+            } catch {
+                // Fallback: WiFi / IP-based location — almost always works
+                position = await tryGetPosition(false)
+            }
+            const { latitude, longitude } = position.coords
+            const address = await reverseGeocode(latitude, longitude)
+            setPickup(address)
+        } catch {
+            alert('Unable to get your location. Please allow location access in your browser settings.')
+        } finally {
+            setLocating(false)
+        }
     }
 
     return (
         <div className='h-screen relative overflow-hidden'>
-            <img className='w-14 sm:w-16 absolute left-5 top-5 z-20' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="Uber" />
+        <div className='fixed p-4 sm:p-5 top-0 flex items-center justify-between w-full z-20 pointer-events-none'>
+                <img className='w-14 sm:w-16 pointer-events-auto' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="Uber" />
+                <Link to='/user/logout' className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow pointer-events-auto'>
+                    <i className="text-lg font-medium ri-logout-box-r-line"></i>
+                </Link>
+            </div>
             <div className='h-screen w-full absolute top-0 left-0 z-0'>
                 {/* <LiveTracking /> */} {/* Google Maps — requires billing */}
                 <LiveTrackingOSM /> {/* Free OpenStreetMap alternative */}

@@ -79,10 +79,14 @@ module.exports.confirmRide = async (req, res) => {
     try {
         const ride = await rideService.confirmRide({ rideId, captain: req.captain });
 
-        sendMessageToSocketId(ride.user.socketId, {
-            event: 'ride-confirmed',
-            data: ride
-        })
+        if (ride.user.socketId) {
+            sendMessageToSocketId(ride.user.socketId, {
+                event: 'ride-confirmed',
+                data: ride
+            });
+        } else {
+            console.warn(`[confirmRide] User ${ride.user._id} has no active socketId — they may have disconnected.`);
+        }
 
         return res.status(200).json(ride);
     } catch (err) {
@@ -105,10 +109,14 @@ module.exports.startRide = async (req, res) => {
 
         console.log(ride);
 
-        sendMessageToSocketId(ride.user.socketId, {
-            event: 'ride-started',
-            data: ride
-        })
+        if (ride.user.socketId) {
+            sendMessageToSocketId(ride.user.socketId, {
+                event: 'ride-started',
+                data: ride
+            });
+        } else {
+            console.warn(`[startRide] User ${ride.user._id} has no active socketId.`);
+        }
 
         return res.status(200).json(ride);
     } catch (err) {
@@ -127,10 +135,14 @@ module.exports.endRide = async (req, res) => {
     try {
         const ride = await rideService.endRide({ rideId, captain: req.captain });
 
-        sendMessageToSocketId(ride.user.socketId, {
-            event: 'ride-ended',
-            data: ride
-        })
+        if (ride.user.socketId) {
+            sendMessageToSocketId(ride.user.socketId, {
+                event: 'ride-ended',
+                data: ride
+            });
+        } else {
+            console.warn(`[endRide] User ${ride.user._id} has no active socketId.`);
+        }
 
 
 

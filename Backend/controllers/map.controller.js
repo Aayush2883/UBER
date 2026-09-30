@@ -49,11 +49,34 @@ module.exports.getAutoCompleteSuggestions = async (req, res, next) => {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { input } = req.query;
+        const { input, lat, lng } = req.query;
 
-        const suggestions = await mapService.getAutoCompleteSuggestions(input);
+        // lat/lng are optional — used by Nominatim to bias results near the user
+        const parsedLat = lat ? parseFloat(lat) : null;
+        const parsedLng = lng ? parseFloat(lng) : null;
+
+        const suggestions = await mapService.getAutoCompleteSuggestions(input, parsedLat, parsedLng);
 
         res.status(200).json(suggestions);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+// Reverse geocode: lat/lng → address string
+// Called server-side so browser doesn't hit Nominatim directly (avoids CORS + rate limits)
+module.exports.reverseGeocode = async (req, res, next) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { lat, lng } = req.query;
+
+        const address = await mapService.reverseGeocode(parseFloat(lat), parseFloat(lng));
+        res.status(200).json({ address });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Internal server error' });

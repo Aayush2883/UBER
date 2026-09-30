@@ -23,6 +23,14 @@ router.get('/get-suggestions',
     mapController.getAutoCompleteSuggestions
 )
 
+// Reverse geocode: coords → address string (server-side to avoid browser CORS + rate limits)
+router.get('/reverse-geocode',
+    query('lat').isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+    query('lng').isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude'),
+    authMiddleware.authUser,
+    mapController.reverseGeocode
+)
+
 
 
 module.exports = router;
