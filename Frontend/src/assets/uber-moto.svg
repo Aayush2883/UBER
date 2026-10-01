@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90" width="160" height="90">
+  <defs>
+    <linearGradient id="motoOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+    <filter id="motoShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Ground Shadow -->
+  <ellipse cx="80" cy="74" rx="58" ry="6" fill="#000000" opacity="0.16"/>
+
+  <!-- Motorcycle Body & Frame -->
+  <g filter="url(#motoShadow)">
+    <!-- Main Chassis / Tank -->
+    <path d="M 52 38 C 58 30 74 28 88 34 C 95 38 104 38 116 42 L 112 52 L 68 54 L 48 46 Z" fill="url(#motoOrange)" stroke="#c2410c" stroke-width="1"/>
+    
+    <!-- Seat -->
+    <path d="M 76 34 C 84 34 100 36 108 40 L 106 45 L 74 42 Z" fill="#1e293b" rx="2"/>
+
+    <!-- Handlebars & Front Fork -->
+    <path d="M 44 26 L 56 26" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 52 26 L 40 60" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Headlight -->
+    <ellipse cx="37" cy="34" rx="3.5" ry="5" fill="#fef08a" stroke="#eab308" stroke-width="0.8"/>
+
+    <!-- Engine / Mechanical Block -->
+    <rect x="65" y="48" width="22" height="15" rx="3" fill="#334155" stroke="#1e293b" stroke-width="1"/>
+    <!-- Exhaust pipe -->
+    <path d="M 76 58 L 116 63 L 126 60" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Rear Fender -->
+    <path d="M 104 43 C 114 46 122 52 126 58" fill="none" stroke="url(#motoOrange)" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Front Wheel -->
+  <g transform="translate(38, 62)">
+    <circle cx="0" cy="0" r="13" fill="#1e293b"/>
+    <circle cx="0" cy="0" r="8" fill="#f1f5f9" stroke="#64748b" stroke-width="1"/>
+    <circle cx="0" cy="0" r="3" fill="#0f172a"/>
+    <!-- Spokes -->
+    <line x1="-7" y1="0" x2="7" y2="0" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="0" y1="-7" x2="0" y2="7" stroke="#94a3b8" stroke-width="1"/>
+  </g>
+
+  <!-- Rear Wheel -->
+  <g transform="translate(122, 62)">
+    <circle cx="0" cy="0" r="13" fill="#1e293b"/>
+    <circle cx="0" cy="0" r="8" fill="#f1f5f9" stroke="#64748b" stroke-width="1"/>
+    <circle cx="0" cy="0" r="3" fill="#0f172a"/>
+    <!-- Spokes -->
+    <line x1="-7" y1="0" x2="7" y2="0" stroke="#94a3b8" stroke-width="1"/>
+    <line x1="0" y1="-7" x2="0" y2="7" stroke="#94a3b8" stroke-width="1"/>
+  </g>
+</svg>

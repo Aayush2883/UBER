@@ -13,8 +13,23 @@ const rideRoutes = require('./routes/ride.routes');
 connectToDb();
 
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true, // Required so cookies (JWT) are sent cross-origin
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        // Allow localhost, vercel app domains, render, or configured FRONTEND_URL
+        if (
+            origin.includes('localhost') ||
+            origin.includes('127.0.0.1') ||
+            origin.endsWith('.vercel.app') ||
+            origin.includes('onrender.com') ||
+            (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL)
+        ) {
+            return callback(null, true);
+        }
+        // Permissive fallback
+        return callback(null, true);
+    },
+    credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -31,8 +46,15 @@ app.use('/captains', captainRoutes);
 app.use('/maps', mapsRoutes);
 app.use('/rides', rideRoutes);
 
-
-
+// Global error handler so the server never crashes on unhandled errors
+app.use((err, req, res, next) => {
+    console.error('Unhandled Server Error:', err);
+    const statusCode = err.statusCode || err.status || 500;
+    res.status(statusCode).json({
+        message: err.message || 'An unexpected error occurred on the server'
+    });
+});
 
 module.exports = app;
+
 

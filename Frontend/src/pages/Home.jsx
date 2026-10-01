@@ -206,34 +206,59 @@ const Home = () => {
         }
     }, [ waitingForDriver ])
 
-    async function findTrip() {
-        setVehiclePanel(true)
-        setPanelOpen(false)
+    const [ error, setError ] = useState('')
+    const [ isFindingTrip, setIsFindingTrip ] = useState(false)
 
-        const token = localStorage.getItem('user-token') || localStorage.getItem('token')
-        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/get-fare`, {
-            params: { pickup, destination },
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
-        setFare(response.data)
+    async function findTrip() {
+        setError('')
+        if (!pickup || !destination) {
+            setError('Please enter both pickup and destination locations')
+            return
+        }
+
+        try {
+            setIsFindingTrip(true)
+            const token = localStorage.getItem('user-token') || localStorage.getItem('token')
+            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/get-fare`, {
+                params: { pickup, destination },
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+            setFare(response.data)
+            setVehiclePanel(true)
+            setPanelOpen(false)
+        } catch (err) {
+            console.error('Error getting fare:', err)
+            setError(err.response?.data?.message || 'Unable to calculate fare. Please try a different location.')
+        } finally {
+            setIsFindingTrip(false)
+        }
     }
 
     async function createRide() {
-        const token = localStorage.getItem('user-token') || localStorage.getItem('token')
-        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
-            pickup,
-            destination,
-            vehicleType
-        }, {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        })
+        try {
+            setError('')
+            const token = localStorage.getItem('user-token') || localStorage.getItem('token')
+            await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
+                pickup,
+                destination,
+                vehicleType
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+        } catch (err) {
+            console.error('Error creating ride:', err)
+            setError(err.response?.data?.message || 'Failed to create ride. Please try again.')
+            setVehicleFound(false)
+            setConfirmRidePanel(true)
+        }
     }
 
     const [ locating, setLocating ] = useState(false)
+
 
     // Helper: reverse-geocode coords → address string via OUR backend
     // (calling Nominatim directly from the browser causes CORS blocks + 429 rate limits)
@@ -299,8 +324,27 @@ const Home = () => {
             </div>
             <div className='h-screen w-full absolute top-0 left-0 z-0'>
                 {/* <LiveTracking /> */} {/* Google Maps — requires billing */}
-                <LiveTrackingOSM /> {/* Free OpenStreetMap alternative */}
+                <LiveTrackingOSM 
+                    pickup={pickup}
+                    destination={destination}
+                    role="user"
+                    title="Your Location"
+                />
             </div>
+
+            {/* Floating circular 'Get Current Location' button for Rider on Map */}
+            <button
+                type='button'
+                onClick={getCurrentLocation}
+                disabled={locating}
+                title='Get Current Location'
+                className={`fixed right-4 z-20 h-12 w-12 bg-white text-blue-600 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.25)] border border-gray-200 flex items-center justify-center transition-all duration-300 transform active:scale-90 hover:bg-gray-50 disabled:opacity-75 pointer-events-auto cursor-pointer ${
+                    panelOpen ? 'bottom-[72%]' : 'bottom-[31%] sm:bottom-[29%]'
+                }`}
+            >
+                <i className={`ri-crosshair-2-fill text-2xl text-blue-600 ${locating ? 'animate-spin' : ''}`}></i>
+            </button>
+
             <div className='flex flex-col justify-end h-screen absolute top-0 left-0 w-full z-10 pointer-events-none'>
                 <div className='h-auto min-h-[28%] p-4 sm:p-6 bg-white relative pointer-events-auto rounded-t-3xl shadow-[0_-4px_25px_rgba(0,0,0,0.15)]'>
                     <h5 ref={panelCloseRef} onClick={() => {
@@ -309,6 +353,12 @@ const Home = () => {
                         <i className="ri-arrow-down-wide-line"></i>
                     </h5>
                     <h4 className='text-xl sm:text-2xl font-semibold mb-2'>Find a trip</h4>
+                    {error && (
+                        <div className='bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-lg mb-2 text-xs sm:text-sm flex items-start gap-2'>
+                            <i className="ri-error-warning-line text-base flex-shrink-0 mt-0.5"></i>
+                            <span>{error}</span>
+                        </div>
+                    )}
                     <form className='relative py-2 sm:py-3' onSubmit={(e) => { submitHandler(e) }}>
                         <div className="line absolute h-14 w-1 top-[50%] -translate-y-1/2 left-5 bg-gray-700 rounded-full"></div>
                         <input

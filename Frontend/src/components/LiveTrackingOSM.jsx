@@ -29,6 +29,18 @@ const liveCarIcon = L.divIcon({
     popupAnchor: [0, -23],
 });
 
+const liveUserIcon = L.divIcon({
+    className: '',
+    html: `
+        <div style="position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;">
+            <div style="position:absolute;width:38px;height:38px;background:rgba(37,99,235,0.35);border-radius:50%;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
+            <div style="position:relative;width:22px;height:22px;background:#2563eb;border:3px solid #ffffff;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,0.35);"></div>
+        </div>`,
+    iconSize:    [40, 40],
+    iconAnchor:  [20, 20],
+    popupAnchor: [0, -20],
+});
+
 const pickupIcon = L.divIcon({
     className: '',
     html: `<div style="width:22px;height:22px;background:#22c55e;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>`,
@@ -231,7 +243,7 @@ const LiveTrackingOSM = ({ pickup, destination, role = 'captain', title = 'Your 
 
                 {/* Live position marker */}
                 {livePos && (
-                    <Marker position={livePos} icon={liveCarIcon}>
+                    <Marker position={livePos} icon={role === 'user' ? liveUserIcon : liveCarIcon}>
                         <Popup>
                             <div className='text-center p-1'>
                                 <p className='font-bold text-sm text-gray-900'>📍 {title}</p>

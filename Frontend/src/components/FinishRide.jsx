@@ -1,25 +1,35 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 
 
 const FinishRide = (props) => {
-
+    const [ error, setError ] = useState('')
+    const [ loading, setLoading ] = useState(false)
     const navigate = useNavigate()
 
     async function endRide() {
-        const captainToken = localStorage.getItem('captain-token') || localStorage.getItem('token')
-        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/end-ride`, {
-            rideId: props.ride._id
-        }, {
-            headers: {
-                Authorization: `Bearer ${captainToken}`
-            }
-        })
+        setError('')
+        setLoading(true)
+        try {
+            const captainToken = localStorage.getItem('captain-token') || localStorage.getItem('token')
+            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/end-ride`, {
+                rideId: props.ride._id
+            }, {
+                headers: {
+                    Authorization: `Bearer ${captainToken}`
+                }
+            })
 
-        if (response.status === 200) {
-            navigate('/captain-home')
+            if (response.status === 200) {
+                navigate('/captain-home')
+            }
+        } catch (err) {
+            console.error('Error ending ride:', err)
+            setError(err.response?.data?.message || 'Failed to complete ride. Please try again.')
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -29,6 +39,13 @@ const FinishRide = (props) => {
                 props.setFinishRidePanel(false)
             }}><i className="text-3xl text-gray-300 ri-arrow-down-wide-line"></i></h5>
             <h3 className='text-xl sm:text-2xl font-semibold mb-4 text-center sm:text-left'>Finish this Ride</h3>
+            {error && (
+                <div className='bg-red-50 border border-red-300 text-red-700 px-3 py-2 rounded-lg mb-3 text-xs sm:text-sm flex items-start gap-2'>
+                    <i className="ri-error-warning-line text-base flex-shrink-0 mt-0.5"></i>
+                    <span>{error}</span>
+                </div>
+            )}
+
             <div className='flex items-center justify-between p-3.5 border-2 border-yellow-400 rounded-xl mt-2 bg-yellow-50'>
                 <div className='flex items-center gap-3'>
                     <img className='h-11 w-11 rounded-full object-cover shadow-sm' src="https://tse2.mm.bing.net/th/id/OIP.bJpr9jpclIkXQT-hkkb1KQHaHa?r=0&rs=1&pid=ImgDetMain&o=7&rm=3" alt="Rider" />

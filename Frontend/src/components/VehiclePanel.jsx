@@ -1,4 +1,5 @@
 import React from 'react'
+import { vehicleImages } from '../assets/vehicles'
 
 const VehiclePanel = (props) => {
     return (
@@ -12,7 +13,7 @@ const VehiclePanel = (props) => {
                 props.setConfirmRidePanel(true)
                 props.selectVehicle('car')
             }} className='flex border-2 border-gray-200 hover:border-black active:border-black mb-3 rounded-2xl w-full p-3 sm:p-4 items-center justify-between cursor-pointer transition-colors bg-white hover:bg-gray-50'>
-                <img className='h-12 sm:h-14 object-contain' src="https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg" alt="UberGo" />
+                <img className='h-12 sm:h-14 w-18 object-contain' src={vehicleImages.car} alt="UberGo" />
                 <div className='ml-3 w-1/2'>
                     <h4 className='font-semibold text-sm sm:text-base flex items-center gap-1.5'>
                         UberGo <span className='text-xs text-gray-500 font-normal'><i className="ri-user-3-fill text-xs"></i> 4</span>
@@ -29,7 +30,7 @@ const VehiclePanel = (props) => {
                 props.setConfirmRidePanel(true)
                 props.selectVehicle('moto')
             }} className='flex border-2 border-gray-200 hover:border-black active:border-black mb-3 rounded-2xl w-full p-3 sm:p-4 items-center justify-between cursor-pointer transition-colors bg-white hover:bg-gray-50'>
-                <img className='h-12 sm:h-14 object-contain' src="https://www.uber-assets.com/image/upload/f_auto,q_auto:eco,c_fill,h_638,w_956/v1649231091/assets/2c/7fa194-c954-49b2-9c6d-a3b8601370f5/original/Uber_Moto_Orange_312x208_pixels_Mobile.png" alt="Moto" />
+                <img className='h-12 sm:h-14 w-18 object-contain' src={vehicleImages.moto} alt="Moto" />
                 <div className='ml-3 w-1/2'>
                     <h4 className='font-semibold text-sm sm:text-base flex items-center gap-1.5'>
                         Moto <span className='text-xs text-gray-500 font-normal'><i className="ri-user-3-fill text-xs"></i> 1</span>
@@ -46,7 +47,7 @@ const VehiclePanel = (props) => {
                 props.setConfirmRidePanel(true)
                 props.selectVehicle('auto')
             }} className='flex border-2 border-gray-200 hover:border-black active:border-black mb-2 rounded-2xl w-full p-3 sm:p-4 items-center justify-between cursor-pointer transition-colors bg-white hover:bg-gray-50'>
-                <img className='h-12 sm:h-14 object-contain' src="https://www.uber-assets.com/image/upload/f_auto,q_auto:eco,c_fill,h_368,w_552/v1648431773/assets/1d/db8c56-0204-4ce4-81ce-56a11a07fe98/original/Uber_Auto_558x372_pixels_Desktop.png" alt="UberAuto" />
+                <img className='h-12 sm:h-14 w-18 object-contain' src={vehicleImages.auto} alt="UberAuto" />
                 <div className='ml-3 w-1/2'>
                     <h4 className='font-semibold text-sm sm:text-base flex items-center gap-1.5'>
                         UberAuto <span className='text-xs text-gray-500 font-normal'><i className="ri-user-3-fill text-xs"></i> 3</span>
